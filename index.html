@@ -1,0 +1,1173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NVIDIA GPU 29 — Ampere Low-Level HW</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0a0a0a;
+            --bg-card: #0d1117;
+            --bg-code: #161b22;
+            --text-primary: #e6edf3;
+            --text-secondary: #8b949e;
+            --accent: #76B900;
+            --accent-dim: #76B90044;
+            --accent-glow: #76B90033;
+            --border: #21262d;
+            --font-display: 'Space Grotesk', sans-serif;
+            --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+            --font-body: 'Inter', sans-serif;
+            --max-width: 900px;
+        }
+
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-family: var(--font-body);
+            font-size: 17px;
+            line-height: 1.7;
+            overflow-x: hidden;
+        }
+
+        /* ── Header ── */
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem 1.5rem;
+            text-align: center;
+            position: relative;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, var(--accent-glow) 0%, transparent 70%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .hero > * {
+            position: relative;
+            z-index: 1;
+        }
+
+        .series-label {
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            color: var(--accent);
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            margin-bottom: 1rem;
+        }
+
+        .hero h1 {
+            font-family: var(--font-display);
+            font-size: clamp(2rem, 5vw, 3.2rem);
+            font-weight: 700;
+            color: var(--text-primary);
+            line-height: 1.2;
+            margin-bottom: 1rem;
+        }
+
+        .hero h1 .accent {
+            color: var(--accent);
+        }
+
+        .hero .subtitle {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            max-width: 600px;
+            margin-bottom: 2rem;
+        }
+
+        /* ── Tag Pills ── */
+        .tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            justify-content: center;
+            margin-bottom: 2.5rem;
+        }
+
+        .tag {
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            padding: 0.25rem 0.75rem;
+            border-radius: 999px;
+            border: 1px solid var(--accent);
+            color: var(--accent);
+            background: var(--accent-dim);
+            white-space: nowrap;
+        }
+
+        /* ── Pipeline Flow Bar ── */
+        .pipeline {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: center;
+            gap: 0.25rem;
+            margin-bottom: 1rem;
+            max-width: var(--max-width);
+        }
+
+        .pipeline-step {
+            font-family: var(--font-mono);
+            font-size: 0.7rem;
+            padding: 0.3rem 0.7rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            color: var(--text-secondary);
+            white-space: nowrap;
+        }
+
+        .pipeline-arrow {
+            color: var(--accent);
+            font-size: 0.9rem;
+            font-weight: 700;
+        }
+
+        /* ── Slides ── */
+        .slide {
+            min-height: 100vh;
+            max-width: var(--max-width);
+            margin: 0 auto;
+            padding: 4rem 1.5rem;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .slide-number {
+            font-family: var(--font-display);
+            font-size: 5rem;
+            font-weight: 700;
+            color: var(--accent-dim);
+            position: absolute;
+            top: 2rem;
+            right: 1.5rem;
+            line-height: 1;
+            user-select: none;
+        }
+
+        .slide h2 {
+            font-family: var(--font-display);
+            font-size: 1.9rem;
+            font-weight: 700;
+            color: var(--accent);
+            margin-bottom: 1.5rem;
+            line-height: 1.25;
+        }
+
+        .slide h3 {
+            font-family: var(--font-display);
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-top: 1.5rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .slide p {
+            margin-bottom: 1rem;
+            color: var(--text-secondary);
+        }
+
+        .slide p strong {
+            color: var(--text-primary);
+        }
+
+        .slide ul, .slide ol {
+            margin-bottom: 1rem;
+            padding-left: 1.5rem;
+            color: var(--text-secondary);
+        }
+
+        .slide li {
+            margin-bottom: 0.4rem;
+        }
+
+        .slide li strong {
+            color: var(--text-primary);
+        }
+
+        /* ── Code Blocks ── */
+        .code-block {
+            background: var(--bg-code);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            margin: 1.25rem 0;
+            overflow: hidden;
+        }
+
+        .code-header {
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            color: var(--accent);
+            background: rgba(118, 185, 0, 0.08);
+            padding: 0.4rem 1rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .code-block pre {
+            margin: 0;
+            padding: 1rem;
+            overflow-x: auto;
+        }
+
+        .code-block code {
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            line-height: 1.6;
+            color: #c9d1d9;
+        }
+
+        /* Syntax highlighting (manual) */
+        .kw { color: #ff7b72; }
+        .fn { color: #d2a8ff; }
+        .str { color: #a5d6ff; }
+        .cm { color: #8b949e; font-style: italic; }
+        .num { color: #79c0ff; }
+        .type { color: #ffa657; }
+        .dir { color: #ff7b72; }
+        .mac { color: #ffa657; }
+
+        /* ── Tables ── */
+        .table-wrap {
+            overflow-x: auto;
+            margin: 1.25rem 0;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+
+        th {
+            background: var(--bg-code);
+            color: var(--accent);
+            font-weight: 600;
+            text-align: left;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid var(--border);
+            font-family: var(--font-display);
+            white-space: nowrap;
+        }
+
+        td {
+            padding: 0.6rem 1rem;
+            border-bottom: 1px solid var(--border);
+            color: var(--text-secondary);
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr:nth-child(even) td {
+            background: rgba(13, 17, 23, 0.5);
+        }
+
+        /* ── Diagrams ── */
+        .diagram-flow {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            margin: 1.5rem 0;
+            padding: 1.5rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+        }
+
+        .diagram-box {
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            padding: 0.5rem 1rem;
+            background: var(--bg-code);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text-primary);
+            text-align: center;
+            white-space: nowrap;
+        }
+
+        .diagram-box.accent {
+            border-color: var(--accent);
+            color: var(--accent);
+            background: rgba(118, 185, 0, 0.08);
+        }
+
+        .diagram-box.dim {
+            color: var(--text-secondary);
+            border-color: var(--border);
+        }
+
+        .diagram-arrow {
+            color: var(--accent);
+            font-size: 1.3rem;
+            font-weight: 700;
+        }
+
+        /* Vertical flow diagrams */
+        .diagram-vertical {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.3rem;
+            margin: 1.5rem 0;
+            padding: 1.5rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+        }
+
+        .diagram-vertical .diagram-arrow {
+            font-size: 1.1rem;
+        }
+
+        /* Nested hierarchy diagram */
+        .hierarchy {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            margin: 1.5rem 0;
+            padding: 1.5rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+        }
+
+        .hierarchy-level {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .hierarchy-label {
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            min-width: 80px;
+            text-align: right;
+        }
+
+        .hierarchy-items {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.35rem;
+        }
+
+        .hierarchy-item {
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            padding: 0.3rem 0.6rem;
+            border-radius: 4px;
+            background: var(--bg-code);
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+        }
+
+        .hierarchy-item.accent {
+            border-color: var(--accent);
+            color: var(--accent);
+            background: rgba(118, 185, 0, 0.08);
+        }
+
+        /* Grid diagram */
+        .diagram-grid {
+            display: grid;
+            gap: 0.75rem;
+            margin: 1.5rem 0;
+            padding: 1.5rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+        }
+
+        .diagram-grid.cols-2 {
+            grid-template-columns: 1fr 1fr;
+        }
+
+        .diagram-grid.cols-3 {
+            grid-template-columns: 1fr 1fr 1fr;
+        }
+
+        .diagram-panel {
+            padding: 1rem;
+            background: var(--bg-code);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+        }
+
+        .diagram-panel.accent-border {
+            border-left: 3px solid var(--accent);
+        }
+
+        .diagram-panel h4 {
+            font-family: var(--font-display);
+            font-size: 1rem;
+            color: var(--accent);
+            margin-bottom: 0.5rem;
+        }
+
+        .diagram-panel p, .diagram-panel ul {
+            font-size: 0.85rem;
+        }
+
+        /* ── Callout Boxes ── */
+        .callout {
+            background: var(--bg-card);
+            border-left: 3px solid var(--accent);
+            border-radius: 0 8px 8px 0;
+            padding: 1rem 1.25rem;
+            margin: 1.25rem 0;
+        }
+
+        .callout p {
+            margin-bottom: 0;
+        }
+
+        .callout .callout-label {
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            color: var(--accent);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 0.3rem;
+        }
+
+        /* ── Tier Visual ── */
+        .tier-visual {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            margin: 1.5rem 0;
+            padding: 1.5rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+        }
+
+        .tier-bar {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .tier-label {
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            min-width: 90px;
+            text-align: right;
+        }
+
+        .tier-fill {
+            height: 32px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            padding: 0 0.75rem;
+            font-family: var(--font-mono);
+            font-size: 0.7rem;
+            white-space: nowrap;
+            transition: width 0.6s ease;
+        }
+
+        .tier-cost {
+            font-family: var(--font-mono);
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            min-width: 70px;
+        }
+
+        /* ── Contents list ── */
+        .contents-list {
+            list-style: none;
+            padding-left: 0;
+            counter-reset: contents;
+        }
+
+        .contents-list li {
+            counter-increment: contents;
+            padding: 0.6rem 0;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .contents-list li:last-child {
+            border-bottom: none;
+        }
+
+        .contents-list li::before {
+            content: counter(contents, decimal-leading-zero);
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            color: var(--accent);
+            min-width: 2rem;
+        }
+
+        .contents-list a {
+            color: var(--text-primary);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .contents-list a:hover {
+            color: var(--accent);
+        }
+
+        /* ── Footer ── */
+        .footer {
+            text-align: center;
+            padding: 3rem 1.5rem;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            border-top: 1px solid var(--border);
+            max-width: var(--max-width);
+            margin: 0 auto;
+        }
+
+        .footer a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+
+        .footer a:hover {
+            text-decoration: underline;
+        }
+
+        /* ── Responsive ── */
+        @media (max-width: 640px) {
+            .slide {
+                padding: 3rem 1rem;
+                min-height: auto;
+            }
+
+            .slide-number {
+                font-size: 3rem;
+                top: 1.5rem;
+                right: 1rem;
+            }
+
+            .slide h2 {
+                font-size: 1.5rem;
+            }
+
+            .diagram-grid.cols-2,
+            .diagram-grid.cols-3 {
+                grid-template-columns: 1fr;
+            }
+
+            .pipeline {
+                gap: 0.15rem;
+            }
+
+            .pipeline-step {
+                font-size: 0.6rem;
+                padding: 0.2rem 0.4rem;
+            }
+
+            .hero h1 {
+                font-size: 1.8rem;
+            }
+
+            table {
+                font-size: 0.78rem;
+            }
+
+            .tier-label {
+                min-width: 60px;
+                font-size: 0.65rem;
+            }
+
+            .tier-fill {
+                font-size: 0.6rem;
+                height: 26px;
+            }
+        }
+
+        /* ── Interactive controls (added for Local LLM series) ── */
+        .control-panel {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1.25rem;
+            margin: 1.25rem 0;
+        }
+        .control-row {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 0.75rem;
+        }
+        .control-row label {
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            min-width: 180px;
+        }
+        .control-row input[type="range"] {
+            flex: 1;
+            min-width: 160px;
+            accent-color: var(--accent);
+        }
+        .control-row input[type="number"],
+        .control-row select {
+            background: var(--bg-code);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            border-radius: 4px;
+            padding: 0.3rem 0.5rem;
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+        }
+        .control-row .val {
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            color: var(--accent);
+            min-width: 80px;
+            text-align: right;
+        }
+        .btn {
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            padding: 0.4rem 0.9rem;
+            background: var(--accent-dim);
+            color: var(--accent);
+            border: 1px solid var(--accent);
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.15s ease;
+        }
+        .btn:hover { background: rgba(118, 185, 0, 0.2); }
+        .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        .btn.secondary {
+            background: var(--bg-code);
+            color: var(--text-secondary);
+            border-color: var(--border);
+        }
+        .result-box {
+            background: var(--bg-code);
+            border: 1px solid var(--border);
+            border-left: 3px solid var(--accent);
+            border-radius: 4px;
+            padding: 0.75rem 1rem;
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            color: var(--text-primary);
+            margin-top: 0.75rem;
+        }
+        .result-box .line-label { color: var(--text-secondary); }
+        .result-box .line-val   { color: var(--accent); font-weight: 600; }
+        .metric-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 0.5rem;
+            margin-top: 0.75rem;
+        }
+        .metric {
+            background: var(--bg-code);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 0.6rem 0.8rem;
+            text-align: center;
+        }
+        .metric .metric-label {
+            font-family: var(--font-mono);
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+        .metric .metric-value {
+            font-family: var(--font-display);
+            font-size: 1.25rem;
+            color: var(--accent);
+            font-weight: 600;
+            margin-top: 0.2rem;
+        }
+
+        /* Canvas / SVG containers */
+        .canvas-wrap {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1.25rem 0;
+            overflow-x: auto;
+        }
+        .canvas-wrap canvas,
+        .canvas-wrap svg {
+            display: block;
+            margin: 0 auto;
+            max-width: 100%;
+        }
+
+        /* Small inline badge */
+        .badge {
+            display: inline-block;
+            font-family: var(--font-mono);
+            font-size: 0.65rem;
+            padding: 0.1rem 0.45rem;
+            border-radius: 999px;
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            vertical-align: middle;
+            margin-left: 0.3rem;
+        }
+        .badge.ok    { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+        .badge.warn  { border-color: #ffa657; color: #ffa657; background: rgba(255,166,87,0.08); }
+        .badge.bad   { border-color: #ff7b72; color: #ff7b72; background: rgba(255,123,114,0.08); }
+
+    </style>
+</head>
+<body>
+
+<header class="hero">
+    <div class="series-label">NVIDIA GPU Architectures Series — Presentation 29</div>
+    <h1>Inside <span class="accent">Ampere</span> &mdash; 3rd-Gen Tensor Cores, 40 MB L2, MIG</h1>
+    <p class="subtitle">Low-level deep dive into NVIDIA's 2020 architecture. Two physical dies on two different processes (GA100 on TSMC 7N, GA10x on Samsung 8N), the SM with 3rd-gen tensor cores adding TF32 / BF16 / 2:4 sparsity, the giant 40 MB L2 jump, NVLink 3.0, MIG hardware partitioning, and HBM2e at 2.0 TB/s.</p>
+
+    <div class="tags">
+        <span class="tag">GA100</span><span class="tag">GA102</span><span class="tag">GA104</span>
+        <span class="tag">A100</span><span class="tag">RTX 3090</span><span class="tag">RTX A6000</span>
+        <span class="tag">TSMC 7N</span><span class="tag">Samsung 8N</span>
+        <span class="tag">HBM2e</span><span class="tag">GDDR6X</span>
+        <span class="tag">NVLink 3.0</span><span class="tag">MIG</span>
+    </div>
+
+    <div class="pipeline">
+        <span class="pipeline-step">GA100/GA10x</span>
+        <span class="pipeline-arrow">&rarr;</span>
+        <span class="pipeline-step">GPC</span>
+        <span class="pipeline-arrow">&rarr;</span>
+        <span class="pipeline-step">SM</span>
+        <span class="pipeline-arrow">&rarr;</span>
+        <span class="pipeline-step">TC3</span>
+        <span class="pipeline-arrow">&rarr;</span>
+        <span class="pipeline-step">40 MB L2</span>
+        <span class="pipeline-arrow">&rarr;</span>
+        <span class="pipeline-step">HBM2e/GDDR6X</span>
+        <span class="pipeline-arrow">&rarr;</span>
+        <span class="pipeline-step">NVLink 3.0</span>
+    </div>
+</header>
+
+<section class="slide" id="slide-00">
+    <div class="slide-number">00</div>
+    <h2>Topics We'll Cover</h2>
+    <ul class="contents-list">
+        <li><a href="#slide-01">Ampere at a Glance &mdash; Two Dies, Two Foundries</a></li>
+        <li><a href="#slide-02">GA100 Die &mdash; Block Diagram</a></li>
+        <li><a href="#slide-03">GA102 Die &mdash; The Consumer Cousin</a></li>
+        <li><a href="#slide-04">The Ampere SM &mdash; Two Variants</a></li>
+        <li><a href="#slide-05">3rd-Generation Tensor Cores &mdash; TF32, BF16, 2:4 Sparsity</a></li>
+        <li><a href="#slide-06">L2 Cache Jump &mdash; 6 MB &rarr; 40 MB</a></li>
+        <li><a href="#slide-07">Process &mdash; TSMC 7N vs Samsung 8N</a></li>
+        <li><a href="#slide-08">Voltage, Power, Form Factors</a></li>
+        <li><a href="#slide-09">Memory &mdash; HBM2e (Datacenter), GDDR6X (Consumer)</a></li>
+        <li><a href="#slide-10">NVLink 3.0 &amp; NVSwitch 2 (HGX A100)</a></li>
+        <li><a href="#slide-11">Ampere's Innovations</a></li>
+        <li><a href="#slide-12">Interactive: Ampere SKU Picker</a></li>
+    </ul>
+</section>
+
+<section class="slide" id="slide-01">
+    <div class="slide-number">01</div>
+    <h2>Ampere at a Glance &mdash; Two Dies, Two Foundries</h2>
+    <p>Ampere launched in <strong>May 2020</strong> as <strong>two physically distinct die families on two foundries</strong>. <strong>GA100</strong> is the HPC/AI die at TSMC 7N. <strong>GA102 / GA104 / GA106 / GA107</strong> are graphics dies at Samsung 8N (a custom 8 nm process). Same architecture name, very different silicon.</p>
+
+    <div class="table-wrap">
+        <table>
+            <thead><tr><th>Die</th><th>Foundry</th><th>Trans</th><th>Area</th><th>SMs</th><th>Top SKU</th></tr></thead>
+            <tbody>
+                <tr><td>GA100</td><td>TSMC 7N</td><td>54.2 B</td><td>826 mm&sup2;</td><td>128 (108 on A100)</td><td>A100 80 GB SXM4</td></tr>
+                <tr><td>GA102</td><td>Samsung 8N</td><td>28.3 B</td><td>628 mm&sup2;</td><td>84 (82 on RTX 3090 Ti)</td><td>RTX 3090 Ti / A6000 / A40</td></tr>
+                <tr><td>GA104</td><td>Samsung 8N</td><td>17.4 B</td><td>392 mm&sup2;</td><td>48 (46 on RTX 3070 Ti)</td><td>RTX 3070 Ti / RTX A4000</td></tr>
+                <tr><td>GA106</td><td>Samsung 8N</td><td>12.0 B</td><td>276 mm&sup2;</td><td>30 (28 on RTX 3060)</td><td>RTX 3060 12 GB</td></tr>
+                <tr><td>GA107</td><td>Samsung 8N</td><td>6.7 B</td><td>200 mm&sup2;</td><td>20</td><td>RTX 3050 / A2</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <p>Datacenter (GA100) and consumer (GA10x) Ampere SMs are <strong>not the same SM</strong>. GA10x doubles FP32 cores per partition for graphics throughput; GA100 doubles FP64 cores instead. Read the next slides carefully.</p>
+</section>
+
+<section class="slide" id="slide-02">
+    <div class="slide-number">02</div>
+    <h2>GA100 Die &mdash; Block Diagram</h2>
+    <div class="hierarchy">
+        <div class="hierarchy-level">
+            <div class="hierarchy-label">Chip</div>
+            <div class="hierarchy-items"><span class="hierarchy-item accent">GA100 die &mdash; 826 mm&sup2;, 54.2 B transistors, TSMC 7N</span></div>
+        </div>
+        <div class="hierarchy-level">
+            <div class="hierarchy-label">GPCs</div>
+            <div class="hierarchy-items">
+                <span class="hierarchy-item">GPC0</span><span class="hierarchy-item">GPC1</span><span class="hierarchy-item">GPC2</span><span class="hierarchy-item">GPC3</span><span class="hierarchy-item">GPC4</span><span class="hierarchy-item">GPC5</span><span class="hierarchy-item">GPC6</span><span class="hierarchy-item">GPC7</span>
+            </div>
+        </div>
+        <div class="hierarchy-level">
+            <div class="hierarchy-label">TPCs / GPC</div>
+            <div class="hierarchy-items"><span class="hierarchy-item">8 TPCs &times; 8 GPCs = 64 TPCs (128 SMs total; 108 enabled on A100)</span></div>
+        </div>
+        <div class="hierarchy-level">
+            <div class="hierarchy-label">L2</div>
+            <div class="hierarchy-items"><span class="hierarchy-item accent">40 MB total (split across 8 partitions; ~5 MB per partition)</span></div>
+        </div>
+        <div class="hierarchy-level">
+            <div class="hierarchy-label">Memory</div>
+            <div class="hierarchy-items"><span class="hierarchy-item accent">5 stacks HBM2e (one disabled on A100 for yield) &mdash; 5120-bit bus</span></div>
+        </div>
+        <div class="hierarchy-level">
+            <div class="hierarchy-label">IO</div>
+            <div class="hierarchy-items"><span class="hierarchy-item">PCIe 4.0 x16</span><span class="hierarchy-item accent">12 NVLink 3.0</span></div>
+        </div>
+    </div>
+</section>
+
+<section class="slide" id="slide-03">
+    <div class="slide-number">03</div>
+    <h2>GA102 Die &mdash; The Consumer Cousin</h2>
+    <p>GA102 powers the RTX 3080 / 3090 / 3090 Ti, the RTX A6000 / A40 workstation cards, and the GA102-based Tesla A40. Process Samsung 8N, 28.3 B transistors on 628 mm&sup2;.</p>
+    <div class="hierarchy">
+        <div class="hierarchy-level">
+            <div class="hierarchy-label">Chip</div>
+            <div class="hierarchy-items"><span class="hierarchy-item accent">GA102 &mdash; 628 mm&sup2;, 28.3 B transistors, Samsung 8N</span></div>
+        </div>
+        <div class="hierarchy-level">
+            <div class="hierarchy-label">GPCs</div>
+            <div class="hierarchy-items"><span class="hierarchy-item">7 GPCs &times; 6 TPCs &times; 2 SMs = 84 SMs (82 enabled on 3090 Ti)</span></div>
+        </div>
+        <div class="hierarchy-level">
+            <div class="hierarchy-label">L2</div>
+            <div class="hierarchy-items"><span class="hierarchy-item">6 MB total (much smaller than GA100; graphics relies on lower-latency L1)</span></div>
+        </div>
+        <div class="hierarchy-level">
+            <div class="hierarchy-label">Memory</div>
+            <div class="hierarchy-items"><span class="hierarchy-item">12 GDDR6X channels, 384-bit bus (RTX 3090/Ti, A6000)</span></div>
+        </div>
+    </div>
+    <p>Notable cuts vs GA100: <strong>FP64 lanes drop to 2/SM (1:64 of FP32)</strong>; <strong>tensor cores stay 3rd-gen but fewer per SM</strong> at half the throughput; <strong>NVLink 3 reduced to a 4-link bridge</strong> on RTX 3090 / A6000, no NVSwitch.</p>
+</section>
+
+<section class="slide" id="slide-04">
+    <div class="slide-number">04</div>
+    <h2>The Ampere SM &mdash; Two Variants</h2>
+    <div class="diagram-grid cols-2">
+        <div class="diagram-panel accent-border">
+            <h4>GA100 SM (datacenter)</h4>
+            <ul>
+                <li>4 partitions, 1 warp scheduler each</li>
+                <li><strong>64 FP32</strong> cores (16/partition)</li>
+                <li><strong>64 INT32</strong> cores (16/partition)</li>
+                <li><strong>32 FP64</strong> cores (8/partition) &mdash; 1:2 FP64:FP32</li>
+                <li><strong>4 tensor cores</strong> (1/partition) &mdash; 3rd gen, much wider than Volta's</li>
+                <li>16 LD/ST, 16 SFU</li>
+                <li><strong>192 KB L1+shared</strong> (configurable: 164/28, 132/60, 100/92, 64/128 KB)</li>
+                <li>256 KB register file</li>
+                <li>No RT cores</li>
+            </ul>
+        </div>
+        <div class="diagram-panel accent-border">
+            <h4>GA10x SM (consumer/workstation)</h4>
+            <ul>
+                <li>4 partitions, 1 warp scheduler each</li>
+                <li><strong>128 FP32</strong> cores (32/partition) &mdash; the doubled-FP32 trick</li>
+                <li>64 INT32 cores (16/partition; one of the two FP32 sets shares lanes with INT)</li>
+                <li><strong>2 FP64</strong> cores per SM &mdash; 1:64 of FP32</li>
+                <li><strong>4 tensor cores</strong> (1/partition) &mdash; same 3rd gen but lower per-cycle throughput</li>
+                <li><strong>1 RT core</strong> per SM (2nd gen, opacity micromaps in DXR 1.1)</li>
+                <li><strong>128 KB L1+shared</strong></li>
+                <li>256 KB register file</li>
+            </ul>
+        </div>
+    </div>
+    <div class="callout">
+        <div class="callout-label">The "doubled FP32" trick &mdash; consumer only</div>
+        <p>GA10x partitions can <em>dual-issue</em> FP32 each cycle but only <em>one</em> of the two ports is also INT32-capable. Marketing counted "10752 CUDA cores" on the 3090; the realistic compute throughput depends on the FP/INT mix. On pure FP32 graphics shaders it matches; on mixed-INT/FP code it halves. GA100 keeps the more balanced one-FP32 + one-INT32 design that compute likes.</p>
+    </div>
+</section>
+
+<section class="slide" id="slide-05">
+    <div class="slide-number">05</div>
+    <h2>3rd-Generation Tensor Cores &mdash; TF32, BF16, 2:4 Sparsity</h2>
+    <p>Each Ampere SM has only 4 tensor cores (Volta had 8) but each is <strong>4&times; the throughput</strong> &mdash; net 2&times; FP16 per SM. New formats are the headline:</p>
+
+    <div class="table-wrap">
+        <table>
+            <thead><tr><th>Operation</th><th>A100 SXM4-80 peak (1410 MHz)</th><th>RTX 3090 (1700 MHz)</th></tr></thead>
+            <tbody>
+                <tr><td>FP32 FMA</td><td>19.5 TFLOPS</td><td>35.6 TFLOPS (FP32-doubled)</td></tr>
+                <tr><td>FP64 FMA</td><td>9.7 TFLOPS</td><td>0.55 TFLOPS</td></tr>
+                <tr><td><strong>Tensor TF32</strong></td><td><strong>156 TFLOPS</strong></td><td>35.6 TFLOPS</td></tr>
+                <tr><td><strong>Tensor BF16 / FP16</strong></td><td><strong>312 TFLOPS</strong></td><td>71 TFLOPS</td></tr>
+                <tr><td><strong>Tensor BF16 / FP16 + 2:4 sparse</strong></td><td><strong>624 TFLOPS</strong></td><td>142 TFLOPS</td></tr>
+                <tr><td><strong>Tensor INT8</strong></td><td><strong>624 TOPS</strong></td><td>142 TOPS</td></tr>
+                <tr><td><strong>Tensor INT8 sparse</strong></td><td><strong>1248 TOPS</strong></td><td>284 TOPS</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <ul>
+        <li><strong>TF32</strong> &mdash; 19-bit format with FP32 exponent (8 bits) and FP16 mantissa (10 bits). Drop-in replacement for FP32 matmul; 8&times; the throughput, no code change.</li>
+        <li><strong>BF16</strong> &mdash; 8-bit exponent like FP32, 7-bit mantissa. Same dynamic range as FP32 with FP16 cost; the format that made stable mixed-precision training routine.</li>
+        <li><strong>2:4 structured sparsity</strong> &mdash; in any 4-element block of weights, 2 must be zero; hardware skips the zeros, doubles throughput.</li>
+    </ul>
+</section>
+
+<section class="slide" id="slide-06">
+    <div class="slide-number">06</div>
+    <h2>L2 Cache Jump &mdash; 6 MB &rarr; 40 MB</h2>
+    <p>The L2 grew nearly <strong>7&times; from Volta to GA100</strong> &mdash; from 6 MB to 40 MB. Practical effect: working sets that previously thrashed HBM now fit on-die. For ResNet-50 inference at batch 1, weights fit in L2 entirely on A100. For LLM decoding the KV cache spills past it, but L2 buffering of recently-touched cache lines doubles effective bandwidth.</p>
+    <p>Ampere also added <strong>residency control</strong>: <code>cudaStreamAttrAccessPolicyWindow</code> lets you mark an address range as "persistent", giving its lines higher L2 retention priority. Used by cuDNN to keep convolution weights pinned.</p>
+    <p>GA10x consumer dies have only <strong>6 MB L2</strong> &mdash; not the headline jump. Consumer Ampere relies on bigger per-SM L1 (128 KB vs GA100's 192 KB but with consumer-tuned L1 hit rates) and high-BW GDDR6X.</p>
+</section>
+
+<section class="slide" id="slide-07">
+    <div class="slide-number">07</div>
+    <h2>Process &mdash; TSMC 7N vs Samsung 8N</h2>
+    <p>NVIDIA split its Ampere supply between two foundries to manage capacity and cost. <strong>TSMC 7N</strong> for GA100 (premium-priced compute die, high-margin) and <strong>Samsung 8N</strong> for GA10x graphics dies (cheaper, larger volume). 8N is technically Samsung's <em>10 nm-class</em> 8 nm LPP &mdash; not equivalent to TSMC N7. Density numbers:</p>
+
+    <div class="table-wrap">
+        <table>
+            <thead><tr><th>Die</th><th>Process</th><th>Trans</th><th>Area</th><th>Density (M/mm&sup2;)</th></tr></thead>
+            <tbody>
+                <tr><td>GA100</td><td>TSMC 7N</td><td>54.2 B</td><td>826 mm&sup2;</td><td><strong>65.6</strong></td></tr>
+                <tr><td>GA102</td><td>Samsung 8N</td><td>28.3 B</td><td>628 mm&sup2;</td><td>45.1</td></tr>
+                <tr><td>GA104</td><td>Samsung 8N</td><td>17.4 B</td><td>392 mm&sup2;</td><td>44.4</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <p>The density gap (65.6 vs 45.1 M/mm&sup2;) explains why a 3090 needs more silicon than an A100 to look superficially similar &mdash; Samsung 8N is roughly an N12-class node by transistor density.</p>
+</section>
+
+<section class="slide" id="slide-08">
+    <div class="slide-number">08</div>
+    <h2>Voltage, Power, Form Factors</h2>
+    <div class="table-wrap">
+        <table>
+            <thead><tr><th>SKU</th><th>Form factor</th><th>TDP</th><th>Connector</th></tr></thead>
+            <tbody>
+                <tr><td>A100 SXM4 40/80 GB</td><td>SXM4 mezzanine (HGX A100)</td><td>400 W</td><td>SXM4 socket (no aux)</td></tr>
+                <tr><td>A100 PCIe 40/80 GB</td><td>PCIe 4.0 x16 dual-slot</td><td>250&ndash;300 W</td><td>1&times; 8-pin EPS</td></tr>
+                <tr><td>RTX 3090 Ti</td><td>PCIe (consumer triple-slot)</td><td>450 W</td><td>1&times; 16-pin (12VHPWR)</td></tr>
+                <tr><td>RTX 3090</td><td>PCIe (consumer triple-slot)</td><td>350 W</td><td>2&times; 8-pin or 1&times; 12-pin (FE)</td></tr>
+                <tr><td>RTX A6000</td><td>PCIe (workstation dual-slot)</td><td>300 W</td><td>1&times; 8-pin EPS</td></tr>
+                <tr><td>A40</td><td>PCIe (datacenter dual-slot)</td><td>300 W</td><td>1&times; 8-pin EPS, ECC GDDR6</td></tr>
+                <tr><td>A2</td><td>PCIe (single-slot, low-profile)</td><td>40&ndash;60 W</td><td>slot-only, ~16 SMs from GA107</td></tr>
+            </tbody>
+        </table>
+    </div>
+    <p>RTX 3090 Ti debuted the <strong>16-pin 12VHPWR connector</strong> (later renamed 12V-2&times;6 after melting incidents on Ada). Voltage rails: GA100 has separate VDD, VDD-HBM, VDD-NVLink-IO, VDD-PLL; GA10x has VDD, VDDQ-GDDR6X (1.35 V), VDD-PLL.</p>
+</section>
+
+<section class="slide" id="slide-09">
+    <div class="slide-number">09</div>
+    <h2>Memory &mdash; HBM2e (Datacenter), GDDR6X (Consumer)</h2>
+    <div class="diagram-grid cols-2">
+        <div class="diagram-panel accent-border">
+            <h4>HBM2e on GA100</h4>
+            <ul>
+                <li>5 stacks of HBM2e on package (one stack disabled on A100 for yield)</li>
+                <li>Stack: 8-Hi, 8 GB (A100 40 GB) or 16 GB (A100 80 GB)</li>
+                <li>Pin rate 2.43 Gbps (40GB) or <strong>3.2 Gbps (80GB)</strong></li>
+                <li>Per-stack BW 311 GB/s (40GB) or <strong>410 GB/s (80GB)</strong></li>
+                <li>5120-bit total bus (5 active stacks &times; 1024-bit)</li>
+                <li>Aggregate <strong>1555 GB/s (40GB) / 2039 GB/s (80GB)</strong></li>
+                <li>ECC SECDED + on-die ECC (HBM2e first added on-die ECC)</li>
+            </ul>
+        </div>
+        <div class="diagram-panel accent-border">
+            <h4>GDDR6X on GA102</h4>
+            <ul>
+                <li>12 channels &times; 32-bit = 384-bit bus on RTX 3090/Ti and A6000</li>
+                <li><strong>PAM4 signalling</strong> &mdash; 4 levels per symbol, doubles data per clock vs GDDR6's NRZ</li>
+                <li>19 Gbps (3080), 19.5 Gbps (3090), 21 Gbps (3090 Ti)</li>
+                <li>Per-card 760&ndash;1008 GB/s</li>
+                <li>No ECC on consumer; ECC enabled on A40/A6000 GDDR6 (no GDDR6X for ECC parts)</li>
+                <li>PAM4 signalling cost: tighter eye, more power per bit, hotter VRAM</li>
+            </ul>
+        </div>
+    </div>
+</section>
+
+<section class="slide" id="slide-10">
+    <div class="slide-number">10</div>
+    <h2>NVLink 3.0 &amp; NVSwitch 2 (HGX A100)</h2>
+    <p>NVLink 3.0 doubles per-link bandwidth: <strong>50 GB/s/dir</strong> per link (up from 25 GB/s on NVLink 2). A100 has <strong>12 links</strong> &rarr; <strong>600 GB/s/dir aggregate, 1.2 TB/s bidirectional</strong>. Signalling: <strong>50 Gbps NRZ per lane, 4 lanes per link</strong> &mdash; reused the same 25 Gbps SerDes physical hardware as NVLink 2 but with FEC (forward error correction) at the link layer to reach 50 Gbps reliably.</p>
+
+    <div class="table-wrap">
+        <table>
+            <thead><tr><th>Property</th><th>NVLink 2.0</th><th>NVLink 3.0</th></tr></thead>
+            <tbody>
+                <tr><td>Per-lane rate</td><td>25 Gbps NRZ</td><td>50 Gbps NRZ + FEC</td></tr>
+                <tr><td>Lanes per link</td><td>8</td><td>4</td></tr>
+                <tr><td>Per-link BW (1-dir)</td><td>25 GB/s</td><td>25 GB/s</td></tr>
+                <tr><td>Wait, what?</td><td colspan="2">NVLink 3.0 keeps the per-link headline number but doubles link count: A100 has 12 links instead of V100's 6.</td></tr>
+                <tr><td>Total per-GPU (1-dir)</td><td>150 GB/s (V100)</td><td>600 GB/s (A100)</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <p><strong>HGX A100 baseboard</strong>: 8&times; A100 SXM4 + <strong>6&times; NVSwitch 2.0</strong> chips (each NVSwitch 2.0 has 36 NVLink 3 ports, 4.5 TB/s aggregate). Every A100 talks to every other at full 600 GB/s. Cross-node uses 8&times; ConnectX-6 HCAs, 200 Gb/s HDR InfiniBand each.</p>
+
+    <p>Consumer Ampere (RTX 3090 / A6000 / A40) carries a <strong>4-link NVLink bridge</strong> for two-card pairing: 200 GB/s/dir aggregate. RTX 3080 and below have no NVLink.</p>
+</section>
+
+<section class="slide" id="slide-11">
+    <div class="slide-number">11</div>
+    <h2>Ampere's Innovations</h2>
+    <ul>
+        <li><strong>3rd-gen tensor cores: TF32, BF16, 2:4 sparsity.</strong> Made transformer training accessible at &gt; 3&times; FP32 throughput with no code changes (TF32) and pushed BF16 mainstream.</li>
+        <li><strong>40 MB L2 cache.</strong> Multi-MB L2 era begins. Working sets fit on-die.</li>
+        <li><strong>Async copy (cp.async).</strong> Hardware-asynchronous global-to-shared memory copy, frees registers from being staging buffers. The kernel-author win that made FlashAttention possible.</li>
+        <li><strong>MIG &mdash; Multi-Instance GPU.</strong> A100 can be partitioned into up to 7 hardware-isolated GPU instances with dedicated SMs, L2 slices, HBM regions, and memory bandwidth.</li>
+        <li><strong>NVLink 3.0 + NVSwitch 2.</strong> 600 GB/s per GPU, 8-GPU all-to-all in HGX A100; the multi-GPU TP era starts here.</li>
+        <li><strong>HBM2e at 2 TB/s.</strong> First production part to break the 2 TB/s memory bandwidth barrier (A100 80 GB).</li>
+        <li><strong>PCIe 4.0 host link.</strong> 32 GB/s/dir; first on a major NVIDIA part.</li>
+        <li><strong>Cooperative groups via tile size.</strong> CUDA 11 added tile-aware cooperative groups; underpins tile-based matmul libraries.</li>
+        <li><strong>RT 2nd gen + 4th-gen NVENC.</strong> Consumer-side wins (DLSS 2.0 ships, AV1 decode debuts).</li>
+        <li><strong>Per-process address space ID (ASID) for MIG.</strong> Hardware support for the isolation guarantees MIG advertises.</li>
+    </ul>
+</section>
+
+<section class="slide" id="slide-12">
+    <div class="slide-number">12</div>
+    <h2>Interactive: Ampere SKU Picker</h2>
+    <div class="control-panel">
+        <div class="control-row">
+            <label for="a-sku">Ampere SKU</label>
+            <select id="a-sku">
+                <option value="a100s40">A100 SXM4 40 GB</option>
+                <option value="a100s80">A100 SXM4 80 GB</option>
+                <option value="a100p40">A100 PCIe 40 GB</option>
+                <option value="a100p80">A100 PCIe 80 GB</option>
+                <option value="a40">A40 48 GB</option>
+                <option value="a6000">RTX A6000 48 GB</option>
+                <option value="a30">A30 24 GB</option>
+                <option value="a10">A10 24 GB</option>
+                <option value="a2">A2 16 GB</option>
+                <option value="3090ti">RTX 3090 Ti 24 GB</option>
+                <option value="3090">RTX 3090 24 GB</option>
+                <option value="3080">RTX 3080 10 GB</option>
+                <option value="3060">RTX 3060 12 GB</option>
+            </select>
+        </div>
+        <div class="metric-grid">
+            <div class="metric"><div class="metric-label">Die / Foundry</div><div class="metric-value" id="a-die">&mdash;</div></div>
+            <div class="metric"><div class="metric-label">SMs</div><div class="metric-value" id="a-sms">&mdash;</div></div>
+            <div class="metric"><div class="metric-label">FP32 TF</div><div class="metric-value" id="a-fp32">&mdash;</div></div>
+            <div class="metric"><div class="metric-label">BF16 TC TF</div><div class="metric-value" id="a-bf16">&mdash;</div></div>
+            <div class="metric"><div class="metric-label">VRAM</div><div class="metric-value" id="a-vram">&mdash;</div></div>
+            <div class="metric"><div class="metric-label">BW (GB/s)</div><div class="metric-value" id="a-bw">&mdash;</div></div>
+            <div class="metric"><div class="metric-label">TDP</div><div class="metric-value" id="a-tdp">&mdash;</div></div>
+            <div class="metric"><div class="metric-label">NVLink / MIG</div><div class="metric-value" id="a-misc">&mdash;</div></div>
+        </div>
+        <div id="a-out" class="result-box"></div>
+    </div>
+    <script>
+    (function(){
+        const data = {
+            'a100s40': { die:'GA100 / TSMC 7N', sms:108, fp32:19.5, bf16:312, vram:'40 GB HBM2e', bw:1555, tdp:'400 W', misc:'12&times; NVLink 3, MIG up to 7', note:'Datacenter flagship; HGX baseboard.' },
+            'a100s80': { die:'GA100 / TSMC 7N', sms:108, fp32:19.5, bf16:312, vram:'80 GB HBM2e', bw:2039, tdp:'400 W', misc:'12&times; NVLink 3, MIG up to 7', note:'Faster HBM2e (3.2 Gbps); the workhorse.' },
+            'a100p40': { die:'GA100 / TSMC 7N', sms:108, fp32:19.5, bf16:312, vram:'40 GB HBM2e', bw:1555, tdp:'250 W', misc:'NVLink bridge 2-card, MIG', note:'PCIe form factor.' },
+            'a100p80': { die:'GA100 / TSMC 7N', sms:108, fp32:19.5, bf16:312, vram:'80 GB HBM2e', bw:1935, tdp:'300 W', misc:'NVLink bridge, MIG', note:'PCIe 80 GB; popular for MIG dev.' },
+            'a40':     { die:'GA102 / Samsung 8N', sms:84, fp32:37.4, bf16:149, vram:'48 GB GDDR6 ECC', bw:696, tdp:'300 W', misc:'NVLink bridge, no MIG', note:'Datacenter graphics + RT card.' },
+            'a6000':   { die:'GA102 / Samsung 8N', sms:84, fp32:38.7, bf16:155, vram:'48 GB GDDR6 ECC', bw:768, tdp:'300 W', misc:'NVLink bridge, no MIG', note:'Workstation flagship; pro driver.' },
+            'a30':     { die:'GA100 / TSMC 7N', sms:56, fp32:10.3, bf16:165, vram:'24 GB HBM2', bw:933, tdp:'165 W', misc:'NVLink bridge, MIG up to 4', note:'Budget datacenter inference; still MIG-capable.' },
+            'a10':     { die:'GA102 / Samsung 8N', sms:72, fp32:31.2, bf16:125, vram:'24 GB GDDR6', bw:600, tdp:'150 W', misc:'no NVLink, no MIG', note:'PCIe single-slot inference card; passive.' },
+            'a2':      { die:'GA107 / Samsung 8N', sms:10, fp32:4.5, bf16:18, vram:'16 GB GDDR6', bw:200, tdp:'40-60 W', misc:'no NVLink, no MIG', note:'Low-profile single-slot edge inference.' },
+            '3090ti':  { die:'GA102 / Samsung 8N', sms:84, fp32:40.0, bf16:160, vram:'24 GB GDDR6X', bw:1008, tdp:'450 W', misc:'no NVLink, no MIG', note:'Consumer flagship of the gen.' },
+            '3090':    { die:'GA102 / Samsung 8N', sms:82, fp32:35.6, bf16:142, vram:'24 GB GDDR6X', bw:936, tdp:'350 W', misc:'NVLink bridge, no MIG', note:'24 GB makes it the LLM hobbyist favourite of 2021-23.' },
+            '3080':    { die:'GA102 / Samsung 8N', sms:68, fp32:29.8, bf16:119, vram:'10 GB GDDR6X', bw:760, tdp:'320 W', misc:'no NVLink, no MIG', note:'Cut GA102; tight 10 GB.' },
+            '3060':    { die:'GA106 / Samsung 8N', sms:28, fp32:12.7, bf16:51, vram:'12 GB GDDR6', bw:360, tdp:'170 W', misc:'no NVLink, no MIG', note:'Sweet-spot consumer; 12 GB hobbyist ML card.' }
+        };
+        function rec(){
+            const k = document.getElementById('a-sku').value;
+            const d = data[k];
+            document.getElementById('a-die').textContent = d.die;
+            document.getElementById('a-sms').textContent = d.sms;
+            document.getElementById('a-fp32').textContent = d.fp32 + ' TF';
+            document.getElementById('a-bf16').textContent = d.bf16 + ' TF';
+            document.getElementById('a-vram').textContent = d.vram;
+            document.getElementById('a-bw').textContent = d.bw;
+            document.getElementById('a-tdp').textContent = d.tdp;
+            document.getElementById('a-misc').innerHTML = d.misc;
+            document.getElementById('a-out').innerHTML = '<div><span class="line-label">role</span> &rarr; <span class="line-val">' + d.note + '</span></div>';
+        }
+        document.getElementById('a-sku').addEventListener('change', rec);
+        rec();
+    })();
+    </script>
+</section>
+<!-- ════════════════════════════════════ Footer ════════════════════════════════════ -->
+<footer class="footer">
+    <p>Part of the <a href="https://github.com/BrendanJamesLynskey/LLMs#nvidia-gpu-architectures">NVIDIA GPU Architectures Series</a></p>
+    <p style="margin-top: 0.5rem; font-size: 0.8rem;"><a href="https://github.com/BrendanJamesLynskey/LLMs#nvidia-gpu-architectures">Back to Series Index</a></p>
+</footer>
+
+<script>
+    // Smooth scroll for TOC links
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function (e) {
+            e.preventDefault();
+            const target = document.querySelector(this.getAttribute('href'));
+            if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+    });
+
+    // Subtle fade-in on scroll
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.style.opacity = '1';
+                entry.target.style.transform = 'translateY(0)';
+            }
+        });
+    }, { threshold: 0.1 });
+    document.querySelectorAll('.slide').forEach(slide => {
+        slide.style.opacity = '0';
+        slide.style.transform = 'translateY(30px)';
+        slide.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+        observer.observe(slide);
+    });
+</script>
+
+</body>
+</html>
