@@ -851,7 +851,7 @@
         </div>
         <div class="hierarchy-level">
             <div class="hierarchy-label">Memory</div>
-            <div class="hierarchy-items"><span class="hierarchy-item accent">5 stacks HBM2e (one disabled on A100 for yield) &mdash; 5120-bit bus</span></div>
+            <div class="hierarchy-items"><span class="hierarchy-item accent">6-stack HBM2e die &mdash; 5 stacks active on A100 (1 disabled for yield), 5120-bit bus</span></div>
         </div>
         <div class="hierarchy-level">
             <div class="hierarchy-label">IO</div>
@@ -897,7 +897,7 @@
                 <li><strong>64 INT32</strong> cores (16/partition)</li>
                 <li><strong>32 FP64</strong> cores (8/partition) &mdash; 1:2 FP64:FP32</li>
                 <li><strong>4 tensor cores</strong> (1/partition) &mdash; 3rd gen, much wider than Volta's</li>
-                <li>16 LD/ST, 16 SFU</li>
+                <li>32 LD/ST, 16 SFU</li>
                 <li><strong>192 KB L1+shared</strong> (configurable: 164/28, 132/60, 100/92, 64/128 KB)</li>
                 <li>256 KB register file</li>
                 <li>No RT cores</li>
@@ -990,7 +990,7 @@
                 <tr><td>RTX 3090</td><td>PCIe (consumer triple-slot)</td><td>350 W</td><td>2&times; 8-pin or 1&times; 12-pin (FE)</td></tr>
                 <tr><td>RTX A6000</td><td>PCIe (workstation dual-slot)</td><td>300 W</td><td>1&times; 8-pin EPS</td></tr>
                 <tr><td>A40</td><td>PCIe (datacenter dual-slot)</td><td>300 W</td><td>1&times; 8-pin EPS, ECC GDDR6</td></tr>
-                <tr><td>A2</td><td>PCIe (single-slot, low-profile)</td><td>40&ndash;60 W</td><td>slot-only, ~16 SMs from GA107</td></tr>
+                <tr><td>A2</td><td>PCIe (single-slot, low-profile)</td><td>40&ndash;60 W</td><td>slot-only, 10 SMs from GA107</td></tr>
             </tbody>
         </table>
     </div>
@@ -1004,7 +1004,7 @@
         <div class="diagram-panel accent-border">
             <h4>HBM2e on GA100</h4>
             <ul>
-                <li>5 stacks of HBM2e on package (one stack disabled on A100 for yield)</li>
+                <li>6-stack HBM2e die; 5 stacks active on A100 (1 disabled for yield)</li>
                 <li>Stack: 8-Hi, 8 GB (A100 40 GB) or 16 GB (A100 80 GB)</li>
                 <li>Pin rate 2.43 Gbps (40GB) or <strong>3.2 Gbps (80GB)</strong></li>
                 <li>Per-stack BW 311 GB/s (40GB) or <strong>410 GB/s (80GB)</strong></li>
@@ -1030,7 +1030,7 @@
 <section class="slide" id="slide-10">
     <div class="slide-number">10</div>
     <h2>NVLink 3.0 &amp; NVSwitch 2 (HGX A100)</h2>
-    <p>NVLink 3.0 doubles per-link bandwidth: <strong>50 GB/s/dir</strong> per link (up from 25 GB/s on NVLink 2). A100 has <strong>12 links</strong> &rarr; <strong>600 GB/s/dir aggregate, 1.2 TB/s bidirectional</strong>. Signalling: <strong>50 Gbps NRZ per lane, 4 lanes per link</strong> &mdash; reused the same 25 Gbps SerDes physical hardware as NVLink 2 but with FEC (forward error correction) at the link layer to reach 50 Gbps reliably.</p>
+    <p>NVLink 3.0 keeps per-link bandwidth the same as NVLink 2 (<strong>25 GB/s/dir</strong>, 50 GB/s bidirectional) but doubles the link count. A100 has <strong>12 links</strong> &rarr; <strong>300 GB/s/dir aggregate, 600 GB/s bidirectional</strong>. Signalling: <strong>50 Gbps NRZ per lane, 4 lanes per link</strong> &mdash; reused the same 25 Gbps SerDes physical hardware as NVLink 2 but halved the lane count per link, with FEC (forward error correction) at the link layer to reach 50 Gbps reliably.</p>
 
     <div class="table-wrap">
         <table>
@@ -1040,14 +1040,14 @@
                 <tr><td>Lanes per link</td><td>8</td><td>4</td></tr>
                 <tr><td>Per-link BW (1-dir)</td><td>25 GB/s</td><td>25 GB/s</td></tr>
                 <tr><td>Wait, what?</td><td colspan="2">NVLink 3.0 keeps the per-link headline number but doubles link count: A100 has 12 links instead of V100's 6.</td></tr>
-                <tr><td>Total per-GPU (1-dir)</td><td>150 GB/s (V100)</td><td>600 GB/s (A100)</td></tr>
+                <tr><td>Total per-GPU (1-dir)</td><td>150 GB/s (V100)</td><td>300 GB/s (A100; 600 GB/s bidirectional)</td></tr>
             </tbody>
         </table>
     </div>
 
     <p><strong>HGX A100 baseboard</strong>: 8&times; A100 SXM4 + <strong>6&times; NVSwitch 2.0</strong> chips (each NVSwitch 2.0 has 36 NVLink 3 ports, 4.5 TB/s aggregate). Every A100 talks to every other at full 600 GB/s. Cross-node uses 8&times; ConnectX-6 HCAs, 200 Gb/s HDR InfiniBand each.</p>
 
-    <p>Consumer Ampere (RTX 3090 / A6000 / A40) carries a <strong>4-link NVLink bridge</strong> for two-card pairing: 200 GB/s/dir aggregate. RTX 3080 and below have no NVLink.</p>
+    <p>Consumer Ampere (RTX 3090 / A6000 / A40) carries a <strong>4-link NVLink bridge</strong> for two-card pairing: 112.5 GB/s bidirectional aggregate. RTX 3080 and below have no NVLink.</p>
 </section>
 
 <section class="slide" id="slide-11">
@@ -1062,7 +1062,7 @@
         <li><strong>HBM2e at 2 TB/s.</strong> First production part to break the 2 TB/s memory bandwidth barrier (A100 80 GB).</li>
         <li><strong>PCIe 4.0 host link.</strong> 32 GB/s/dir; first on a major NVIDIA part.</li>
         <li><strong>Cooperative groups via tile size.</strong> CUDA 11 added tile-aware cooperative groups; underpins tile-based matmul libraries.</li>
-        <li><strong>RT 2nd gen + 4th-gen NVENC.</strong> Consumer-side wins (DLSS 2.0 ships, AV1 decode debuts).</li>
+        <li><strong>RT 2nd gen + 7th-gen NVENC + 5th-gen NVDEC.</strong> Consumer-side wins (DLSS 2.0 maturing, AV1 decode debuts).</li>
         <li><strong>Per-process address space ID (ASID) for MIG.</strong> Hardware support for the isolation guarantees MIG advertises.</li>
     </ul>
 </section>
