@@ -816,8 +816,8 @@
             <thead><tr><th>Die</th><th>Foundry</th><th>Trans</th><th>Area</th><th>SMs</th><th>Top SKU</th></tr></thead>
             <tbody>
                 <tr><td>GA100</td><td>TSMC 7N</td><td>54.2 B</td><td>826 mm&sup2;</td><td>128 (108 on A100)</td><td>A100 80 GB SXM4</td></tr>
-                <tr><td>GA102</td><td>Samsung 8N</td><td>28.3 B</td><td>628 mm&sup2;</td><td>84 (82 on RTX 3090 Ti)</td><td>RTX 3090 Ti / A6000 / A40</td></tr>
-                <tr><td>GA104</td><td>Samsung 8N</td><td>17.4 B</td><td>392 mm&sup2;</td><td>48 (46 on RTX 3070 Ti)</td><td>RTX 3070 Ti / RTX A4000</td></tr>
+                <tr><td>GA102</td><td>Samsung 8N</td><td>28.3 B</td><td>628 mm&sup2;</td><td>84 (all 84 on RTX 3090 Ti; 82 on 3090)</td><td>RTX 3090 Ti / A6000 / A40</td></tr>
+                <tr><td>GA104</td><td>Samsung 8N</td><td>17.4 B</td><td>392 mm&sup2;</td><td>48 (all 48 on RTX 3070 Ti; 46 on 3070)</td><td>RTX 3070 Ti / RTX A4000</td></tr>
                 <tr><td>GA106</td><td>Samsung 8N</td><td>12.0 B</td><td>276 mm&sup2;</td><td>30 (28 on RTX 3060)</td><td>RTX 3060 12 GB</td></tr>
                 <tr><td>GA107</td><td>Samsung 8N</td><td>6.7 B</td><td>200 mm&sup2;</td><td>20</td><td>RTX 3050 / A2</td></tr>
             </tbody>
@@ -871,7 +871,7 @@
         </div>
         <div class="hierarchy-level">
             <div class="hierarchy-label">GPCs</div>
-            <div class="hierarchy-items"><span class="hierarchy-item">7 GPCs &times; 6 TPCs &times; 2 SMs = 84 SMs (82 enabled on 3090 Ti)</span></div>
+            <div class="hierarchy-items"><span class="hierarchy-item">7 GPCs &times; 6 TPCs &times; 2 SMs = 84 SMs (all enabled on 3090 Ti; 82 on 3090)</span></div>
         </div>
         <div class="hierarchy-level">
             <div class="hierarchy-label">L2</div>
@@ -911,7 +911,7 @@
                 <li>64 INT32 cores (16/partition; one of the two FP32 sets shares lanes with INT)</li>
                 <li><strong>2 FP64</strong> cores per SM &mdash; 1:64 of FP32</li>
                 <li><strong>4 tensor cores</strong> (1/partition) &mdash; same 3rd gen but lower per-cycle throughput</li>
-                <li><strong>1 RT core</strong> per SM (2nd gen, opacity micromaps in DXR 1.1)</li>
+                <li><strong>1 RT core</strong> per SM (2nd gen; adds hardware motion-blur interpolation)</li>
                 <li><strong>128 KB L1+shared</strong></li>
                 <li>256 KB register file</li>
             </ul>
@@ -919,7 +919,7 @@
     </div>
     <div class="callout">
         <div class="callout-label">The "doubled FP32" trick &mdash; consumer only</div>
-        <p>GA10x partitions can <em>dual-issue</em> FP32 each cycle but only <em>one</em> of the two ports is also INT32-capable. Marketing counted "10752 CUDA cores" on the 3090; the realistic compute throughput depends on the FP/INT mix. On pure FP32 graphics shaders it matches; on mixed-INT/FP code it halves. GA100 keeps the more balanced one-FP32 + one-INT32 design that compute likes.</p>
+        <p>GA10x partitions can <em>dual-issue</em> FP32 each cycle but only <em>one</em> of the two ports is also INT32-capable. Marketing counted "10496 CUDA cores" on the 3090 (10752 on the 3090 Ti); the realistic compute throughput depends on the FP/INT mix. On pure FP32 graphics shaders it matches; on mixed-INT/FP code it halves. GA100 keeps the more balanced one-FP32 + one-INT32 design that compute likes.</p>
     </div>
 </section>
 
@@ -935,10 +935,10 @@
                 <tr><td>FP32 FMA</td><td>19.5 TFLOPS</td><td>35.6 TFLOPS (FP32-doubled)</td></tr>
                 <tr><td>FP64 FMA</td><td>9.7 TFLOPS</td><td>0.55 TFLOPS</td></tr>
                 <tr><td><strong>Tensor TF32</strong></td><td><strong>156 TFLOPS</strong></td><td>35.6 TFLOPS</td></tr>
-                <tr><td><strong>Tensor BF16 / FP16</strong></td><td><strong>312 TFLOPS</strong></td><td>71 TFLOPS</td></tr>
+                <tr><td><strong>Tensor BF16 / FP16</strong></td><td><strong>312 TFLOPS</strong></td><td>71 TFLOPS (FP32 accumulate; FP16-accumulate FP16 is 142)</td></tr>
                 <tr><td><strong>Tensor BF16 / FP16 + 2:4 sparse</strong></td><td><strong>624 TFLOPS</strong></td><td>142 TFLOPS</td></tr>
-                <tr><td><strong>Tensor INT8</strong></td><td><strong>624 TOPS</strong></td><td>142 TOPS</td></tr>
-                <tr><td><strong>Tensor INT8 sparse</strong></td><td><strong>1248 TOPS</strong></td><td>284 TOPS</td></tr>
+                <tr><td><strong>Tensor INT8</strong></td><td><strong>624 TOPS</strong></td><td>284 TOPS</td></tr>
+                <tr><td><strong>Tensor INT8 sparse</strong></td><td><strong>1248 TOPS</strong></td><td>568 TOPS</td></tr>
             </tbody>
         </table>
     </div>
@@ -1045,7 +1045,7 @@
         </table>
     </div>
 
-    <p><strong>HGX A100 baseboard</strong>: 8&times; A100 SXM4 + <strong>6&times; NVSwitch 2.0</strong> chips (each NVSwitch 2.0 has 36 NVLink 3 ports, 4.5 TB/s aggregate). Every A100 talks to every other at full 600 GB/s. Cross-node uses 8&times; ConnectX-6 HCAs, 200 Gb/s HDR InfiniBand each.</p>
+    <p><strong>HGX A100 baseboard</strong>: 8&times; A100 SXM4 + <strong>6&times; NVSwitch 2.0</strong> chips (each NVSwitch 2.0 has 36 NVLink 3 ports, 1.8 TB/s aggregate). Every A100 talks to every other at full 600 GB/s. Cross-node uses 8&times; ConnectX-6 HCAs, 200 Gb/s HDR InfiniBand each.</p>
 
     <p>Consumer Ampere (RTX 3090 / A6000 / A40) carries a <strong>4-link NVLink bridge</strong> for two-card pairing: 112.5 GB/s bidirectional aggregate. RTX 3080 and below have no NVLink.</p>
 </section>
@@ -1104,19 +1104,19 @@
     <script>
     (function(){
         const data = {
-            'a100s40': { die:'GA100 / TSMC 7N', sms:108, fp32:19.5, bf16:312, vram:'40 GB HBM2e', bw:1555, tdp:'400 W', misc:'12&times; NVLink 3, MIG up to 7', note:'Datacenter flagship; HGX baseboard.' },
+            'a100s40': { die:'GA100 / TSMC 7N', sms:108, fp32:19.5, bf16:312, vram:'40 GB HBM2', bw:1555, tdp:'400 W', misc:'12&times; NVLink 3, MIG up to 7', note:'Datacenter flagship; HGX baseboard.' },
             'a100s80': { die:'GA100 / TSMC 7N', sms:108, fp32:19.5, bf16:312, vram:'80 GB HBM2e', bw:2039, tdp:'400 W', misc:'12&times; NVLink 3, MIG up to 7', note:'Faster HBM2e (3.2 Gbps); the workhorse.' },
-            'a100p40': { die:'GA100 / TSMC 7N', sms:108, fp32:19.5, bf16:312, vram:'40 GB HBM2e', bw:1555, tdp:'250 W', misc:'NVLink bridge 2-card, MIG', note:'PCIe form factor.' },
+            'a100p40': { die:'GA100 / TSMC 7N', sms:108, fp32:19.5, bf16:312, vram:'40 GB HBM2', bw:1555, tdp:'250 W', misc:'NVLink bridge 2-card, MIG', note:'PCIe form factor.' },
             'a100p80': { die:'GA100 / TSMC 7N', sms:108, fp32:19.5, bf16:312, vram:'80 GB HBM2e', bw:1935, tdp:'300 W', misc:'NVLink bridge, MIG', note:'PCIe 80 GB; popular for MIG dev.' },
             'a40':     { die:'GA102 / Samsung 8N', sms:84, fp32:37.4, bf16:149, vram:'48 GB GDDR6 ECC', bw:696, tdp:'300 W', misc:'NVLink bridge, no MIG', note:'Datacenter graphics + RT card.' },
             'a6000':   { die:'GA102 / Samsung 8N', sms:84, fp32:38.7, bf16:155, vram:'48 GB GDDR6 ECC', bw:768, tdp:'300 W', misc:'NVLink bridge, no MIG', note:'Workstation flagship; pro driver.' },
             'a30':     { die:'GA100 / TSMC 7N', sms:56, fp32:10.3, bf16:165, vram:'24 GB HBM2', bw:933, tdp:'165 W', misc:'NVLink bridge, MIG up to 4', note:'Budget datacenter inference; still MIG-capable.' },
             'a10':     { die:'GA102 / Samsung 8N', sms:72, fp32:31.2, bf16:125, vram:'24 GB GDDR6', bw:600, tdp:'150 W', misc:'no NVLink, no MIG', note:'PCIe single-slot inference card; passive.' },
             'a2':      { die:'GA107 / Samsung 8N', sms:10, fp32:4.5, bf16:18, vram:'16 GB GDDR6', bw:200, tdp:'40-60 W', misc:'no NVLink, no MIG', note:'Low-profile single-slot edge inference.' },
-            '3090ti':  { die:'GA102 / Samsung 8N', sms:84, fp32:40.0, bf16:160, vram:'24 GB GDDR6X', bw:1008, tdp:'450 W', misc:'no NVLink, no MIG', note:'Consumer flagship of the gen.' },
-            '3090':    { die:'GA102 / Samsung 8N', sms:82, fp32:35.6, bf16:142, vram:'24 GB GDDR6X', bw:936, tdp:'350 W', misc:'NVLink bridge, no MIG', note:'24 GB makes it the LLM hobbyist favourite of 2021-23.' },
-            '3080':    { die:'GA102 / Samsung 8N', sms:68, fp32:29.8, bf16:119, vram:'10 GB GDDR6X', bw:760, tdp:'320 W', misc:'no NVLink, no MIG', note:'Cut GA102; tight 10 GB.' },
-            '3060':    { die:'GA106 / Samsung 8N', sms:28, fp32:12.7, bf16:51, vram:'12 GB GDDR6', bw:360, tdp:'170 W', misc:'no NVLink, no MIG', note:'Sweet-spot consumer; 12 GB hobbyist ML card.' }
+            '3090ti':  { die:'GA102 / Samsung 8N', sms:84, fp32:40.0, bf16:80, vram:'24 GB GDDR6X', bw:1008, tdp:'450 W', misc:'no NVLink, no MIG', note:'Consumer flagship of the gen.' },
+            '3090':    { die:'GA102 / Samsung 8N', sms:82, fp32:35.6, bf16:71, vram:'24 GB GDDR6X', bw:936, tdp:'350 W', misc:'NVLink bridge, no MIG', note:'24 GB makes it the LLM hobbyist favourite of 2021-23.' },
+            '3080':    { die:'GA102 / Samsung 8N', sms:68, fp32:29.8, bf16:59.5, vram:'10 GB GDDR6X', bw:760, tdp:'320 W', misc:'no NVLink, no MIG', note:'Cut GA102; tight 10 GB.' },
+            '3060':    { die:'GA106 / Samsung 8N', sms:28, fp32:12.7, bf16:25.5, vram:'12 GB GDDR6', bw:360, tdp:'170 W', misc:'no NVLink, no MIG', note:'Sweet-spot consumer; 12 GB hobbyist ML card.' }
         };
         function rec(){
             const k = document.getElementById('a-sku').value;
